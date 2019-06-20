@@ -71,5 +71,16 @@ function! neoterm#repl#opfunc(type)
 endfunction
 
 function! g:neoterm.repl.exec(command)
-  call g:neoterm.repl.instance().exec(add(a:command, g:neoterm_eof))
+  " HACK: ipython will only process the first expression if sending too many
+  " lines too quickly, so we introduce a small sleep between lines
+  " See: https://github.com/kassio/neoterm/issues/108
+  " and https://github.com/ipython/ipython/issues/9948
+  if g:neoterm_repl_command =~# 'ipython'
+    for line in a:command
+      call g:neoterm.repl.instance().exec(add([line], g:neoterm_eof))
+      sleep 10m
+    endfor
+  else
+    call g:neoterm.repl.instance().exec(add(a:command, g:neoterm_eof))
+  endif
 endfunction
