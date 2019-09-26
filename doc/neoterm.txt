@@ -1,12 +1,5 @@
 *neoterm.txt*   A neovim's terminal with steroids
 
-        ,____,  ,___,____,  ,___, ,_________,____,______,  ,___, ,___,
-        !     \ !   !  ,_! /  _  \!         !  ,_!\      \ !    V    !
-        !   .  \!   !  !_,/  / \  \--,   ,--!  !_, !  !)  !!         !
-        !   !\  `   !  ,_!  +   +  ! !   !  !  ,_! !     / !   !V!   !
-        !   ! \     !  !_,\  \_/  /  !   !  !  !_, !  .  \ !   ! !   !
-        !___!  \____!____! \_____/   !___!  !____! !__|\__\!___! !___!
-
 ===============================================================================
 CONTENTS                                                      *neoterm-contents*
 
@@ -82,7 +75,7 @@ The default mapping is `,tt`. It can be changed in |g:neoterm_automap_keys|.
 
 DEPRECATED - Commands like |:T| and |:Tnew| accept vim mods (|mods|). If you
 want to choose the default mod use in one of these commands see
-|g:neoterm_default_mods|.
+|g:neoterm_default_mod|.
 
 :TREPLSetTerm {term-id}                                          *:TREPLSetTerm*
 
@@ -163,16 +156,17 @@ Default value: `0`.
 Key combination to be used with |:Tmap|.
 Default value: `,tt`.
 
-                                                    *g:neoterm_open_in_all_tabs*
+                                                        *g:neoterm_term_per_tab*
 
-When set neoterm will create one (different) term to each tab, and use the
-current neoterm as target to the commands.
-Default value: `0`.
+When set to 1 neoterm will send the commands to the neoterm buffer linked to
+the current tab instead of the last active neoterm.
+Default value: 0
 
                                                       *g:neoterm_keep_term_open*
 
-When set, neoterm terminal will be kept running in background. When not set,
-`:bdelete!` is used to close neoterm in |:Tclose|.
+When set, neoterm terminal will be kept running in background when the buffer
+is hidden, or when closing via |:Tclose|. When not set, `:bdelete!` is used to
+close neoterm in |:Tclose|.
 Default value: `1`.
 
                                                           *g:neoterm_autoinsert*
@@ -275,11 +269,6 @@ to ensure the mode is set to insertion mode.   For instance when using a shell
 or REPL in vi-mode, setting this to `"\edda"` will clear the current line then
 leave the prompt in insertion mode.
 Default value: ''
-                                                        *g:neoterm_term_per_tab*
-
-When set to 1 neoterm will send the commands to the neoterm buffer linked to
-the current tab instead of the last active neoterm.
-Default value: 0
 
 ===============================================================================
 6. Operators                                                 *neoterm-operators*

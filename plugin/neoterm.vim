@@ -8,7 +8,8 @@ let g:neoterm = {
       \ 'last_id': 0,
       \ 'last_active': 0,
       \ 'open': 0,
-      \ 'instances': {}
+      \ 'instances': {},
+      \ 'managed': []
       \ }
 
 function! g:neoterm.next_id()
@@ -110,7 +111,7 @@ if !exists('g:neoterm_auto_repl_cmd')
 end
 
 if !exists('g:neoterm_command_prefix')
-    let g:neoterm_command_prefix = ''
+  let g:neoterm_command_prefix = ''
 end
 
 if !exists('g:neoterm_term_per_tab')
@@ -127,6 +128,31 @@ end
 
 if exists('g:neoterm_tnew_mod')
   echoe '*g:neoterm_tnew_mod* DEPRECATED! see :help g:neoterm_split_on_tnew'
+end
+
+if !exists('g:neoterm_marker')
+  if has('win32') || has('win64')
+    let g:neoterm_marker = '&::neoterm'
+  else
+    let g:neoterm_marker = ';#neoterm'
+  end
+end
+
+let g:neoterm_marked_shell = g:neoterm_shell.g:neoterm_marker
+
+" Load the right adapter for vim or neovim
+call neoterm#term#load()
+
+if exists('#TerminalOpen')
+  autocmd TerminalOpen * call neoterm#new_from_event()
+end
+
+if exists('#TermOpen')
+  autocmd TermOpen term://*neoterm call neoterm#new_from_event()
+end
+
+if exists('#TermClose')
+  autocmd TermClose term://*neoterm call neoterm#close_from_event()
 end
 
 " Handling

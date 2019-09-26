@@ -1,5 +1,12 @@
 # neoterm
 
+ ```
+ __   _ _______  _____  _______ _______  ______ _______
+ | \  | |______ |     |    |    |______ |_____/ |  |  |
+ |  \_| |______ |_____|    |    |______ |    \_ |  |  |
+```
+
+
 Use the same terminal for everything. The main reason for this plugin is to
 reuse the terminal easily. All commands open a terminal if one does not already
 exist. REPL commands open a terminal and the proper REPL if not already opened.
@@ -78,28 +85,28 @@ stored in `%USERPROFILE%\_vimrc`.
 
 ### Supported REPLs
 
-* Ruby: `pry` and `irb`
-* Rails: `bundle exec rails console`
-* Python: `ipython` and `python`
-* JavaScript: `node`
+* Clojure: `lein repl`
 * Elixir: `iex` and `iex -S mix` (if `config/config.exs` exists)
-* Julia: `julia`
-* PARI/GP: `gp`
-* R / R Markdown: `R`
 * GNU Octave: `octave`
   * For Octave 4.0.0 and later, you can enable Qt widgets (dialogs, plots, etc.)
     using `g:neoterm_repl_octave_qt = 1`
-* MATLAB: `matlab -nodesktop -nosplash`
-* Idris: `idris`
 * Haskell: `ghci`
-* PHP: `g:neoterm_repl_php` and `psysh` and `php`
-* Clojure: `lein repl`
+* Idris: `idris`
+* JavaScript: `node`
+* Julia: `julia`
+* LFE: `lfe`
 * Lua with `lua` and `luap`.
-* TCL: `tclsh`
+* MATLAB: `matlab -nodesktop -nosplash`
+* PARI/GP: `gp`
+* PHP: `g:neoterm_repl_php` and `psysh` and `php`
+* Python: `ipython` and `python`
+* R / R Markdown: `R`
+* Racket: `racket`
+* Rails: `bundle exec rails console`
+* Ruby: `pry` and `irb`
 * SML: `rlwrap sml` or `sml`
 * Scala: `sbt console`
-* Racket: `racket`
-* LFE: `lfe`
+* TCL: `tclsh`
 
 ### Troubleshooting
 
@@ -143,6 +150,30 @@ Open a pull request to add REPLs and other features to this plugin. :smiley:
 
 ## Changelog
 
+* 01/09/2019
+  - Use a proper terminal marker for each OS. Unix-like uses `;#neoterm` and
+    windows uses `&::neoterm`. (Same strategy used on
+    [FZF](https://github.com/junegunn/fzf/commit/5097e563df9c066e307b7923283cf1609ede693e)) (\#246)
+* 20/08/2019
+  - Destroy managed neoterm buffer loaded from session
+  - Refactor the neoterm target function, the function the retrieves the desired
+    neoterm to act on, to its own autoload function set (neoterm#target#).
+  - Only manage neoterm terminals with `TermOpen`. (\#243)
+* 19/08/2019
+  - Only use `TermOpen` when it' available. (\#243)
+* 18/08/2019
+  - Enable neoterm to manage any terminal buffer. The TermOpen event is being
+    used to associate neovim terminal with neoterm.
+  - Remove deprecated `g:neoterm_open_in_all_tabs` and fix
+    `g:neoterm_term_per_tab` (\#237).
+  - Better message when trying to execute a command on an already closed
+    neoterm. Instead of show the error stacktrace just shows the message:
+    "neoterm-X not found (probably already closed)" (\#242)
+* 21/06/2019
+  - Fix bug with window resizing for non-default mods (\#239).
+* 07/06/2019
+  - `g:neoterm_keep_term_open` keeps hidden terminals open even if they are
+    closed without using `:Tclose`
 * 11/03/2019
   - Make the `signcolumn=auto` in neoterm buffer.
 * 29/01/2019

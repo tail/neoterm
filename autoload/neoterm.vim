@@ -5,24 +5,35 @@
 "        handlers: Dictionary with `on_stdout`, `on_stderr` and/or `on_exit`.
 "                   On vim these will be renamed to `out_cb`, `err_cb`,
 "                   `exit_cb`. For more info read `:help job_control.txt`
+"        from_buffer: Set when the neoterm is being created from the TermOpen
+"        eveent. This enables neoterm to manage every term created on neovim.
 function! neoterm#new(...)
-  call neoterm#term#load()
-
   let l:opts = extend(get(a:, 1, {}), {
         \ 'handlers': {},
         \ 'mod': '',
         \ 'buffer_id': 0,
-        \ 'origin': s:winid()
+        \ 'origin': s:winid(),
+        \ 'from_buffer': 0,
         \ }, 'keep')
 
   let l:instance = extend(copy(g:neoterm.prototype), l:opts)
-  call s:create_window(l:instance)
 
-  let l:instance.id = g:neoterm.next_id()
-  let t:neoterm_id = l:instance.id
-  let l:instance.name = printf('neoterm-%s', l:instance.id)
-  let l:instance.termid = g:neoterm.new(l:instance)
+  if !l:opts.from_buffer
+    call s:create_window(l:instance)
+  end
+
   let l:instance.buffer_id = bufnr('')
+  let l:instance.id = g:neoterm.next_id()
+  let l:instance.name = printf('neoterm-%s', l:instance.id)
+  let t:neoterm_id = l:instance.id
+
+  if l:opts.from_buffer
+    let l:instance.termid = g:neoterm.get_current_termid()
+  else
+    let l:instance.termid = g:neoterm.new(l:instance)
+  end
+
+  let g:neoterm.managed += [l:instance.termid]
 
   call s:after_open(l:instance)
 
@@ -31,9 +42,26 @@ function! neoterm#new(...)
   return l:instance
 endfunction
 
+function! neoterm#new_from_event()
+  let l:should_load = get(g:, 'SessionLoad', 0)
+        \ && index(g:neoterm.managed, g:neoterm.get_current_termid()) < 0
+
+  if l:should_load
+    call neoterm#new({'from_buffer': 1})
+  end
+endfunction
+
+function! neoterm#close_from_event()
+  for l:instance in values(g:neoterm.instances)
+    if l:instance.buffer_id == expand('<abuf>')
+      call neoterm#destroy(l:instance)
+    end
+  endfor
+endfunction
+
 function! neoterm#open(...)
   let l:opts = extend(a:1, { 'mod': '', 'target': 0 }, 'keep')
-  let l:instance = s:target(l:opts)
+  let l:instance = neoterm#target#get(l:opts)
 
   if empty(l:instance)
     call neoterm#new({ 'mod': l:opts.mod })
@@ -56,7 +84,7 @@ endfunction
 
 function! neoterm#close(...)
   let l:opts = extend(a:1, { 'target': 0, 'force': 0 }, 'keep')
-  let l:instance = s:target(l:opts)
+  let l:instance = neoterm#target#get(l:opts)
 
   if !empty(l:instance)
     let l:instance.origin = s:winid()
@@ -94,6 +122,10 @@ function! s:after_open(instance)
     setlocal winfixheight winfixwidth
   end
 
+  if g:neoterm_keep_term_open
+    setlocal bufhidden=hide
+  end
+
   if g:neoterm_autoinsert
     startinsert
   elseif !g:neoterm_autojump
@@ -107,9 +139,9 @@ endfunction
 
 function! neoterm#toggle(...)
   let l:opts = extend(a:1, { 'mod': '', 'target': 0 }, 'keep')
-  let l:instance = s:target(l:opts)
+  let l:instance = neoterm#target#get(l:opts)
 
-  if empty(l:instance) || (g:neoterm_term_per_tab && !has_key(t:, 'neoterm_id'))
+  if empty(l:instance)
     call neoterm#new({ 'mod': l:opts.mod })
   else
     if bufwinnr(l:instance.buffer_id) > 0
@@ -134,23 +166,30 @@ endfunction
 
 function! neoterm#exec(opts)
   let l:command = map(copy(a:opts.cmd), { i, cmd -> s:expand(cmd) })
-  let l:instance = s:target({ 'target': get(a:opts, 'target', 0) })
+  let l:instance = neoterm#target#get({ 'target': get(a:opts, 'target', 0) })
 
-  if empty(l:instance) && !g:neoterm.has_any()
+  if s:requires_new_instance(l:instance)
     let l:instance = neoterm#new({ 'mod': get(a:opts, 'mod', '') })
   end
 
-  let g:neoterm.last_active = l:instance.id
-  call l:instance.exec(l:command)
+  if !empty(l:instance)
+    let g:neoterm.last_active = l:instance.id
+    call l:instance.exec(l:command)
 
-  if get(a:opts, 'force_clear', 0)
-    let l:bufname = bufname(l:instance.buffer_id)
-    let l:scrollback = getbufvar(l:bufname, '&scrollback')
+    if get(a:opts, 'force_clear', 0)
+      let l:bufname = bufname(l:instance.buffer_id)
+      let l:scrollback = getbufvar(l:bufname, '&scrollback')
 
-    call setbufvar(l:bufname, "&scrollback", 0)
-    sleep 100m
-    call setbufvar(l:bufname, "&scrollback", l:scrollback)
+      call setbufvar(l:bufname, '&scrollback', 0)
+      sleep 100m
+      call setbufvar(l:bufname, '&scrollback', l:scrollback)
+    end
   end
+endfunction
+
+function! s:requires_new_instance(instance)
+  return (empty(a:instance) && g:neoterm_term_per_tab && !has_key(t:, 'neoterm_id'))
+        \ || (empty(a:instance) && !g:neoterm.has_any())
 endfunction
 
 function! neoterm#map_for(command)
@@ -224,10 +263,11 @@ function! s:create_window(instance)
     if a:instance.buffer_id > 0
       let l:cmd .= printf(' +buffer%s', a:instance.buffer_id)
     end
+
     exec l:cmd
 
     if !empty(g:neoterm_size)
-      exec('resize ' .g:neoterm_size)
+      exec(l:mod . ' resize ' . g:neoterm_size)
     endif
 
     let &hidden=l:hidden
@@ -235,26 +275,6 @@ function! s:create_window(instance)
 
   if get(a:instance, 'buffer_id', 0) > 0 && bufnr('') != a:instance.buffer_id
     exec printf('buffer %s', a:instance.buffer_id)
-  end
-endfunction
-
-function! s:target(opts)
-  if a:opts.target > 0
-    if has_key(g:neoterm.instances, a:opts.target)
-      return g:neoterm.instances[a:opts.target]
-    else
-      echoe printf('neoterm-%s not found', a:opts.target)
-    end
-  elseif g:neoterm_term_per_tab && has_key(t:, 'neoterm_id')
-    if has_key(g:neoterm.instances, t:neoterm_id)
-      return g:neoterm.instances[t:neoterm_id]
-    else
-      echoe printf('neoterm-%s not found', t:neoterm_id)
-    end
-  elseif g:neoterm.has_any()
-    return g:neoterm.last()
-  else
-    return {}
   end
 endfunction
 
