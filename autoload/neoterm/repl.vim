@@ -78,7 +78,7 @@ function! g:neoterm.repl.exec(command)
   if g:neoterm_repl_command =~# 'ipython'
     for line in a:command
       call g:neoterm.repl.instance().exec(add([line], g:neoterm_eof))
-      sleep 10m
+      sleep 1m
     endfor
   else
     call g:neoterm.repl.instance().exec(add(a:command, g:neoterm_eof))
